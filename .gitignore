@@ -1,0 +1,10 @@
+.Rproj.user
+.Rhistory
+.RData
+.DS_Store
+.quarto
+.env
+_scratch/
+data/00-raw-data/**
+
+!**/.gitkeep

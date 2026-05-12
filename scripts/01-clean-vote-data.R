@@ -1,0 +1,52 @@
+# TODO: Remove un-needed libraries
+# For network analysis
+library(tidygraph)
+library(igraph)
+library(ggraph)
+# For everything else
+library(dplyr)
+library(tidyr)
+library(here)
+library(readr)
+library(lubridate)
+library(glue)
+library(stringr)
+library(fs) # Overwrites `igraph::path`
+
+source(path(here(), "scripts", "utils.R"))
+
+data_dir <- path(here(), "data")
+out_path <- path(data_dir, "01-clean-data", "clean_voting_2022_2026.rds")
+raw_data_path <- path(data_dir, "00-raw-data", "raw_voting_2022_2026.csv")
+
+assert_file_exits(raw_data_path)
+raw_votes_2022_2026 <- read_csv(raw_data_path)
+
+# Clean ------------------------------------------------------------------------
+
+clean_votes_2022_2026 <- raw_votes_2022_2026 |>
+  select(
+    # Dropping unneeded columns for size:
+    # id = X_id,
+    # term = Term,
+    committee = Committee,
+    result = Result,
+    vote_description = Vote.Description,
+    fname = First.Name,
+    lname = Last.Name,
+    datetime = Date.Time,
+    agenda_item_id = `Agenda.Item..`,
+    agenda_item_title = Agenda.Item.Title,
+    vote = Vote
+  ) |>
+  mutate(
+    councillor_id = glue("{lname} {fname}"), # Councillor names are unique
+    datetime = datetime |>
+      str_remove("[AP]M$") |>
+      str_squish() |>
+      parse_datetime()
+  )
+
+# Save -------------------------------------------------------------------------
+
+write_rds(clean_votes_2022_2026, out_path)
