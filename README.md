@@ -78,4 +78,4 @@ this paper, run the following `R` commands from the repository root.
 
 ### Statement on LLM Usage
 
-A statement of LLM usage for this paper will be included at `other/llm/usage.txt`.
+AI was not used.
