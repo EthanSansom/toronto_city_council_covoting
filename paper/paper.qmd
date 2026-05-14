@@ -1,0 +1,41 @@
+---
+title: "Identifying Coalitions in the 2022-2026 Toronto City Council via Co-Voting Network Analysis"
+author: 
+  - Ethan Sansom
+thanks: "Code and data are available at: [https://github.com/EthanSansom/toronto_city_council_covoting](https://github.com/EthanSansom/toronto_city_council_covoting)."
+date: today
+date-format: long
+abstract: "Placeholder Abstract"
+format: pdf
+header-includes:
+  - \usepackage{float}
+  - \floatplacement{table}{H}
+number-sections: true
+bibliography: references.bib
+---
+
+# Introduction
+
+# Data
+
+## Voting Records
+
+## Agenda Item Climate Categorization
+
+## Measurement
+
+## Sample Selection
+
+# Methodology
+
+# Analysis and Results
+
+\newpage
+
+\appendix
+
+# Appendix {-}
+
+\newpage
+
+# References
