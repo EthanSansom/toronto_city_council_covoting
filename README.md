@@ -46,8 +46,9 @@ this paper, run the following `R` commands from the repository root.
 1. `renv::init()` loads the required dependenices.
 2. `source("00-download-eco-council-items.R")` scrapes items from [Climate Voting Records Toronto](https://votingrecords.climatefast.ca/), which are subject to change. Skip this step to use the `eco_council_items.rds` dataset, current as of May 14, 2026.
 3. `source("00-download-vote-data.R")` downloads City Council voting data from the [City of Toronto Open Data portal](https://open.toronto.ca/dataset/members-of-toronto-city-council-voting-record/).
-4. `source("02-create-covoting-networks.R")` creates the co-voting network and performs Louvain network-clustering.
-5. `paper.qmd` renders the paper as a PDF. In RStudio, Positron, or another IDE, open `paper.qmd` and click render to generate the paper. Alternatively use the terminal command `quarto render paper/paper.qmd`.
+4. `source("01-clean-vote-data.R")` cleans the City Council voting data and categorizes a subset of agenda items as climate related.
+5. `source("02-create-covoting-networks.R")` creates the co-voting network and performs Louvain network-clustering.
+6. `paper.qmd` renders the paper as a PDF. In RStudio, Positron, or another IDE, open `paper.qmd` and click render to generate the paper. Alternatively use the terminal command `quarto render paper/paper.qmd`.
 
 
 ```
@@ -58,7 +59,7 @@ this paper, run the following `R` commands from the repository root.
 │       ├── clean_voting_2022_2026.rds         # Clean 2022-2026 council votes
 │       ├── community_eco_vote_percentage.csv  # Frequency of pro-climate votes by cluster
 │       ├── covoting_communities.csv           # Councillor cluster identification
-│       ├── covoting_network.rds               # {tidygraph} co-voting network
+│       ├── covoting_network.rds               # {tidygraph} co-voting network object
 │       ├── eco_council_items.rds              # Council item climate categorization
 │       └── log_download_eco_council_items.rds # Error/success log from climate item download
 ├── paper
@@ -70,7 +71,7 @@ this paper, run the following `R` commands from the repository root.
 │   ├── 00-download-eco-council-items.R # Downloads, logs, and saves `eco_council_items.rds`
 │   ├── 00-download-vote-data.R         # Downloads and saves `raw_voting_2022_2026.csv`
 │   ├── 01-clean-vote-data.R            # Cleans voter roles and saves `clean_voting_2022_2026.rds`
-│   ├── 02-create-covoting-networks.R   # Generate the co-voting network and cluster councillors
+│   ├── 02-create-covoting-networks.R   # Generates the co-voting network and cluster councillors
 │   └── utils.R
 └── toronto_city_council_covoting.Rproj
 ```
