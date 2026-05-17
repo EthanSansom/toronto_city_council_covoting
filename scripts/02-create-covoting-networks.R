@@ -1,10 +1,12 @@
+# Preamble ---------------------------------------------------------------------
+
+# TODO
+
 # Setup ------------------------------------------------------------------------
 
-# For network analysis
 library(tidygraph)
 library(igraph)
 library(ggraph)
-# For data cleaning and I/O
 library(dplyr)
 library(tidyr)
 library(here)
@@ -14,50 +16,44 @@ library(glue)
 library(stringr)
 library(forcats)
 
-# Clustering algorithm for network-coallition is non-deterministic
-set.seed(123)
-
-fs <- fs::path # Overwrites `igraph::path`
-source(path(here(), "scripts", "utils.R"))
+set.seed(123) # Clustering algorithm for network-coalition is non-deterministic
+fs <- fs::path # Prevents conflicts with `igraph::path`
 
 data_dir <- path(here(), "data")
 clean_data_path <- path(data_dir, "01-clean-data", "clean_voting_2022_2026.rds")
 
-assert_file_exits(clean_data_path)
-clean_votes_2022_2026 <- read_rds(clean_data_path)
+all_votes <- read_rds(clean_data_path)
 
 # Filter Sample ----------------------------------------------------------------
 
-# NOTE: Limiting to:
-# - Only consider "City Council" comittee (e.g. no sub-comittees)
-# - Councillors with `>= 600` votes (out of ~1500 potential votes)
-# - Yes or No votes (exludes absents)
-city_council_votes <- clean_votes_2022_2026 |>
-  filter(committee == "City Council") |>
-  filter(n() >= 600, .by = councillor_id) |>
+# Limiting to:
+# - Councillors with `>= 400` total network_votes (out of ~700 potential network_votes)
+# - Yes or No network_votes (exludes absents)
+network_votes <- all_votes |>
+  filter(n() >= 400, .by = councillor_id) |>
   filter(vote %in% c("No", "Yes"))
 
 # Networking -------------------------------------------------------------------
 
-# Each node is a councillor, each vote contributes to edge-weights between nodes.
-nodes <- city_council_votes |> distinct(name = councillor_id)
-votes <- city_council_votes |> select(item_id, councillor_id, vote, datetime) |> distinct()
+# Each node is a councillor, each vote contributes to edge-weights between nodes
+nodes <- network_votes |> distinct(name = councillor_id)
+network_votes <- network_votes |> select(item_id, councillor_id, vote)
 
 # Each edge's weight is the frequency of agreement between each pair of councillors
-# across all votes where *both* members of the pair submitted a "Yes" or "No" vote,
+# across all network_votes where *both* members of the pair submitted a "Yes" or "No" vote,
 # e.g. were not "Absent" or not seated on the council yet.
 edges <- inner_join(
-  votes |> rename(from = councillor_id, from_vote = vote), 
-  votes |> rename(to = councillor_id, to_vote = vote),
-  by = c("item_id", "datetime"),
+  network_votes |> rename(from = councillor_id, from_vote = vote), 
+  network_votes |> rename(to = councillor_id, to_vote = vote),
+  by = c("item_id"),
   relationship = "many-to-many"
 ) |>
   summarize(
-    n_votes = n(), 
-    n_agree = sum(from_vote == to_vote),
+    n_both_voted = n(), 
+    n_agreed = sum(from_vote == to_vote),
     .by = c(from, to)
   ) |>
-  mutate(agree_perc = n_agree / n_votes)
+  mutate(agree_perc = n_agreed / n_both_voted)
 
 # This dataset keeps both the A-B and B-A directions, for easier non-directed 
 # summaries.
@@ -67,26 +63,9 @@ agreeableness <- edges |> filter(from != to)
 # doesn't matter (i.e. this is an undirected graph).
 edges <- edges |> filter(from < to)
 
-# NOTE: Holyday Stephen is super weird. He votes with the other councillors
-#       roughly 50% of the time, regardless of the councillor.
-#
-# Look at how agree-able each councillor is
-agreeableness |>
-  group_by(from) |>
-  summarize(
-    agree_min = min(agree_perc),
-    agree_max = max(agree_perc),
-    agree_range = abs(agree_max - agree_min),
-    agree_mean = mean(agree_perc),
-    agree_sd = sd(agree_perc)
-  ) |>
-  ungroup() |>
-  arrange(agree_range) |>
-  print(n = 99)
-
 covote_network <- tbl_graph(
   nodes = nodes,
-  edges = edges |> select(from, to, weight = agree_perc, n_votes, n_agree),
+  edges = edges |> select(from, to, weight = agree_perc, n_both_voted, n_agreed),
   directed = FALSE
 )
 
@@ -99,8 +78,6 @@ covote_network <- covote_network |>
     degree = centrality_degree(weights = weight),
     betweenness = centrality_betweenness(weights = weight, directed = FALSE),
     eigen_centrality = centrality_eigen(weights = weight, directed = FALSE),
-    # TODO: Look into `igraph::cluster_louvain` (the backend) and the other 
-    # `tidygraph::group_*` options.
     community = group_louvain(
       weights = weight,
       resolution = 1.030 # Lower values typically yield fewer clusters
@@ -115,7 +92,7 @@ ggraph(covote_network, layout = "fr") +
   scale_edge_width(range = c(0.2, 2)) +
   theme_graph()
 
-# Green Votes by Community -----------------------------------------------------
+# Green network_votes by Community -----------------------------------------------------
 
 # Pull node community assignments as a plain tibble for joining
 communities <- covote_network |>
@@ -124,46 +101,38 @@ communities <- covote_network |>
   select(councillor_id = name, community)
 
 # Get the % of councillors in each "community" (cluster) who voted "Yes" on each
-# item. Then, within community take the mean percentage-of-yes-votes for each
-# category of "Green" votes (e.g. all votes about Expanding the Cycling Network).
-community_green_votes <- clean_votes_2022_2026 |>
+# item. Then, within community take the mean percentage-of-yes-network_votes for each
+# category of "Green" network_votes (e.g. all network_votes about Expanding the Cycling Network).
+community_green_votes <- all_votes |>
   right_join(communities, by = "councillor_id") |>
+  filter(!is.na(item_eco_category))
+
+community_green_votes <- community_green_votes |>
+  bind_rows(community_green_votes |> mutate(item_eco_category = "All Green Items")) |>
   
   group_by(item_id, community, item_eco_category) |>
   summarize(perc_yes = sum(vote == "Yes") / sum(vote %in% c("Yes", "No"))) |>
   ungroup() |>
 
   group_by(community, item_eco_category) |>
-  summarize(mean_perc_yes = mean(perc_yes)) |>
+  summarize(
+    mean_perc_yes = mean(perc_yes),
+    n_items = n_distinct(item_id)
+  ) |>
   ungroup()
 
-# Add the mean within community "Yes" vote percentage across all "Green" items.
-community_green_votes <- bind_rows(
-  community_green_votes,
-  clean_votes_2022_2026 |>
-    right_join(communities, by = "councillor_id") |>
-    filter(!is.na(item_eco_category)) |>
-    
-    group_by(item_id, community, item_eco_category) |>
-    summarize(perc_yes = sum(vote == "Yes") / sum(vote %in% c("Yes", "No"))) |>
-    ungroup() |>
-
-    summarize(mean_perc_yes = mean(perc_yes), .by = community) |>
-    mutate(item_eco_category = "All Green Items")
-)
-
-# NOTE: `community == 1` is 88% "Green" vs. 80% in `community == 1`
+# NOTE: `community == 1` is 97.8% "Green" vs. 82.8% in `community == 1`
 community_green_votes |> filter(item_eco_category == "All Green Items")
 
 # Test Plot: Mean "Yes" vote percentage across all eco-voter items by community.
 community_green_votes |>
   mutate(community = if_else(community == 1, "More Green", "Less Green")) |>
   mutate(
-    green_perc_yes = mean_perc_yes[community == "More Green"], 
+    less_green_perc_yes = mean_perc_yes[community == "Less Green"], 
     .by = item_eco_category
   ) |>
   filter(!is.na(item_eco_category)) |>
-  mutate(item_eco_category = fct_reorder(item_eco_category, green_perc_yes)) |>
+  mutate(item_eco_category = fct_reorder(item_eco_category, less_green_perc_yes)) |>
   ggplot(aes(x = mean_perc_yes, y = item_eco_category)) +
   geom_col(aes(fill = community), position = "dodge")
 

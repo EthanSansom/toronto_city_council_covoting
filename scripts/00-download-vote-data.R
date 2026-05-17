@@ -1,3 +1,7 @@
+# Preamble ---------------------------------------------------------------------
+
+# TODO
+
 library(here)
 library(fs)
 library(readr)
