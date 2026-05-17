@@ -1,6 +1,9 @@
 # Preamble ---------------------------------------------------------------------
 
-# TODO
+# Purpose: Downloads and saves data from: https://votingrecords.climatefast.ca/voting-records/item/385544
+# Author: Ethan Sansom
+# Date: 17 May 2026
+# License: MIT
 
 # Setup ------------------------------------------------------------------------
 

@@ -1,6 +1,11 @@
 # Preamble ---------------------------------------------------------------------
 
-# TODO
+# Purpose: Downloads and saves data from OpenData Toronto.
+# Author: Ethan Sansom
+# Date: 17 May 2026
+# License: MIT
+
+# Work -------------------------------------------------------------------------
 
 library(here)
 library(fs)

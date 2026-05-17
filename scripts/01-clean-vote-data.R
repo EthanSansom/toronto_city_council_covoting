@@ -1,6 +1,10 @@
 # Preamble ---------------------------------------------------------------------
 
-# TODO
+# Purpose: Clean City Council voting data (e.g. tidy names and subsetting) and
+#          removes duplicate votes.
+# Author: Ethan Sansom
+# Date: 17 May 2026
+# License: MIT
 
 # Setup ------------------------------------------------------------------------
 

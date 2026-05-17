@@ -1,6 +1,10 @@
 # Preamble ---------------------------------------------------------------------
 
-# TODO
+# Purpose: Generate a co-voting network and cluster City Councilors based on
+#          voting preference. Calculate the "Green" voting rate of the clusters.
+# Author: Ethan Sansom
+# Date: 17 May 2026
+# License: MIT
 
 # Setup ------------------------------------------------------------------------
 
@@ -92,7 +96,7 @@ ggraph(covote_network, layout = "fr") +
   scale_edge_width(range = c(0.2, 2)) +
   theme_graph()
 
-# Green network_votes by Community -----------------------------------------------------
+# Green Votes by Community -----------------------------------------------------
 
 # Pull node community assignments as a plain tibble for joining
 communities <- covote_network |>
@@ -101,8 +105,9 @@ communities <- covote_network |>
   select(councillor_id = name, community)
 
 # Get the % of councillors in each "community" (cluster) who voted "Yes" on each
-# item. Then, within community take the mean percentage-of-yes-network_votes for each
-# category of "Green" network_votes (e.g. all network_votes about Expanding the Cycling Network).
+# item. Then, within community take the mean percentage-of-yes-network_votes for 
+# each category of "Green" network_votes (e.g. all network_votes about Expanding 
+# the Cycling Network).
 community_green_votes <- all_votes |>
   right_join(communities, by = "councillor_id") |>
   filter(!is.na(item_eco_category))
@@ -124,7 +129,7 @@ community_green_votes <- community_green_votes |>
 # NOTE: `community == 1` is 97.8% "Green" vs. 82.8% in `community == 1`
 community_green_votes |> filter(item_eco_category == "All Green Items")
 
-# Test Plot: Mean "Yes" vote percentage across all eco-voter items by community.
+# Test Plot: Mean "Yes" vote percentage across all eco-voter items by community
 community_green_votes |>
   mutate(community = if_else(community == 1, "More Green", "Less Green")) |>
   mutate(
